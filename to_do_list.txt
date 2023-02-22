@@ -1,0 +1,4 @@
+Account for Double Game Weeks
+Push to Git
+Add banking of transfers logic
+Build initial team method
