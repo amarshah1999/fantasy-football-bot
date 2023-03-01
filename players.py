@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-
+from collections import defaultdict
 from config import pos_mapping
 
 
@@ -21,7 +21,7 @@ class GameWeekData:
 
 class HistoricData:
     def __init__(self, player_id, player_round_history, live_gw):
-        self.history: dict[int, GameWeekData] = {}
+        self.history: defaultdict[int, list[GameWeekData]] = defaultdict(list)
         for gameweek in player_round_history["history"]:
             round_number = gameweek["round"]
             points = gameweek["total_points"]
@@ -34,25 +34,30 @@ class HistoricData:
             bps = gameweek["bps"]
             creativity = gameweek["creativity"]
             minutes = gameweek["minutes"]
-            self.history[round_number] = GameWeekData(
-                player_id,
-                round_number,
-                points,
-                goals_scored,
-                opposition_team_id,
-                was_home,
-                value,
-                influence,
-                threat,
-                bps,
-                creativity,
-                minutes,
+
+            self.history[round_number].append(
+                GameWeekData(
+                    player_id,
+                    round_number,
+                    points,
+                    goals_scored,
+                    opposition_team_id,
+                    was_home,
+                    value,
+                    influence,
+                    threat,
+                    bps,
+                    creativity,
+                    minutes,
+                )
             )
         # fill in the blank gameweeks
         for gameweek in range(1, live_gw + 1):
             if not self.history.get(gameweek):
-                self.history[gameweek] = GameWeekData(
-                    player_id, gameweek, 0, None, None, None, None, 0, 0, 0, 0, 0
+                self.history[gameweek].append(
+                    GameWeekData(
+                        player_id, gameweek, 0, None, None, None, None, 0, 0, 0, 0, 0
+                    )
                 )
 
 

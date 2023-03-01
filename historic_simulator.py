@@ -2,17 +2,19 @@ import pickle
 
 from api import API
 from config import is_live, num_games, pos_mapping
+from helpers import normalise_string
 from players import get_player_dict
 from team import Team
 from team_status import TeamStatus
 from xp_model import XP_Model
+import csv
 
 if __name__ == "__main__":
 
     api = API()
     player_data = api.get_player_data()
     team_id_mapping = api.get_team_id_mapping()
-
+    output_data = []
     # with open('player_historic.pickle', 'rb') as file:
     #     player_historic = pickle.load(file)
 
@@ -78,9 +80,9 @@ if __name__ == "__main__":
         # Update player with any changed attributes
         for player in player_dict.values():
             hist_data = player.historic_data.history.get(current_gw)
-
-            if hist_data and hist_data.value:
-                player.cost = player.selling_price = hist_data.value  # this is wrong
+            # taking first match in gw since price shouldn't change within a gw
+            if hist_data and hist_data[0].value:
+                player.cost = player.selling_price = hist_data[0].value  # this is wrong
 
         model = XP_Model(active_players, round_number - 1, team_id_mapping)
 
@@ -124,18 +126,23 @@ if __name__ == "__main__":
             )
 
         bot_points = 0
-        players_counted = []
+        players_counted = set()
         for player in sorted(
-            current_team.player_list, key=lambda p: p.numeric_position
+            current_team.player_list,
+            key=lambda p: p.numeric_position,
         ):
-            gameweek_data = player.historic_data.history[round_number]
-            if gameweek_data.minutes > 0 & check_player_satisfies_position_constraints(
-                player, players_counted, current_team.pos_constraints_dict
-            ):
-                players_counted.append(player)
-                bot_points += gameweek_data.points
-                if player.id == captain_id:
+            gameweek_data_list = player.historic_data.history[round_number]
+            for gameweek_data in gameweek_data_list:
+                if (
+                    gameweek_data.minutes > 0
+                    and check_player_satisfies_position_constraints(
+                        player, players_counted, current_team.pos_constraints_dict
+                    )
+                ):
+                    players_counted.add(player)
                     bot_points += gameweek_data.points
+                    if player.id == captain_id:
+                        bot_points += gameweek_data.points
             if len(players_counted) > 10:
                 break
 
@@ -146,4 +153,18 @@ if __name__ == "__main__":
         # print(
         #     f"Team for gameweek {round_number} , {sorted([(p.name, p.cost, p.numeric_position, p.historic_data.history[round_number].points) for p in current_team.player_list], key = lambda p: p[2])}"
         # )
+        output_data.append(
+            (
+                round_number,
+                amar_points,
+                bot_points,
+                [normalise_string(x.name) for x in players_counted],
+            )
+        )
+
     print(fpl_bot_total, amar_total)
+    with open("simulation_run.csv", "w") as file:
+        csv = csv.writer(file)
+        csv.writerow(["round_number", "amar_points", "bot_points", "current_team"])
+        for row in output_data:
+            csv.writerow(row)

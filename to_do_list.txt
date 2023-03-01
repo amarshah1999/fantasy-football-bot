@@ -1,3 +1,4 @@
-Account for Double Game Weeks
+Account for Double Game Weeks (done for simulation, need to do for live play)
 Add banking of transfers logic
+Add -4 points for extra transfers cost
 Build initial team method

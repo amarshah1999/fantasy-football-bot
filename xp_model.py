@@ -30,10 +30,11 @@ class XP_Model:
         output = {}
         player_data_as_list = []
         for player in self.player_dict.values():
-            for gwd in player.historic_data.history.values():
-                row_as_dict = gwd.__dict__
-                row_as_dict["player_name"] = player.name
-                player_data_as_list.append(row_as_dict)
+            for gwd_list in player.historic_data.history.values():
+                for gwd in gwd_list:
+                    row_as_dict = gwd.__dict__
+                    row_as_dict["player_name"] = player.name
+                    player_data_as_list.append(row_as_dict)
         df = pd.DataFrame(player_data_as_list)
         df = df.sort_values(by="round_number")
         new_df = pd.DataFrame()
@@ -86,14 +87,17 @@ class XP_Model:
         model.fit(X_train, y_train)
         # dump(model, "model.joblib")
         # model = load("model.joblib")
-
         preds = model.predict(rest_of_df.drop(ignore_cols, axis=1))
         rest_of_df["preds"] = preds
         new_df = pd.concat([rest_of_df, zero_preds])
 
-        filtered = new_df[new_df.round_number == self.current_gw][
-            ["player_id", "preds"]
-        ].copy()
+        # sum up the points for this GW
+        filtered = (
+            new_df[new_df.round_number == self.current_gw][["player_id", "preds"]]
+            .groupby("player_id")
+            .sum()
+            .reset_index()
+        )
 
         output = dict(zip(filtered.player_id, filtered.preds))
 
