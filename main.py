@@ -12,22 +12,21 @@ if __name__ == "__main__":
     player_data = api.get_player_data()
 
     team_id_mapping = api.get_team_id_mapping()
-    player_historic = api.load_player_historic([player["id"] for player in player_data])
+    # player_historic = api.load_player_historic([player["id"] for player in player_data])
     # with open("player_historic.pickle", "rb") as file:
     #     player_historic = pickle.load(file)
 
-    player_dict = get_player_dict(
-        player_data, player_historic, team_id_mapping, current_gw
-    )
-    with open("player_dict.pickle", "wb") as file:
-        pickle.dump(player_dict, file)
+    # player_dict = get_player_dict(
+    #     player_data, player_historic, team_id_mapping, current_gw
+    # )
+    # with open("player_dict.pickle", "wb") as file:
+    #     pickle.dump(player_dict, file)
 
-    # with open("player_dict.pickle", "rb") as file:
-    #     player_dict = pickle.load(file)
+    with open("player_dict.pickle", "rb") as file:
+        player_dict = pickle.load(file)
 
-    model = XP_Model(player_dict, current_gw, team_id_mapping)
     # model.get_xp()
-    breakpoint()
+
     # xp_dict = model.build_data()
     # for player_id in player_dict:
     #     player_dict[player_id].expected_points = xp_dict[player_id]
@@ -38,6 +37,11 @@ if __name__ == "__main__":
     current_team.update_player_dict(player_dict)
     current_team.set_team_attributes_from_live_data()
     player_list = current_team.player_list
+    model = XP_Model(player_dict, current_gw, team_id_mapping)
+    xp_dict1 = model.get_xp()
+    # if player_id not in xp_dict will just fallback to FPL provided value
+    for player_id in xp_dict1:
+        player_dict[player_id].expected_points = xp_dict1[player_id]
 
     t1 = Team(player_dict, player_list=player_list, current_team=current_team)
     new_team = t1.build_team_for_gw()

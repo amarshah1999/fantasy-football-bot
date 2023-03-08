@@ -38,11 +38,24 @@ class XP_Model:
         df = pd.DataFrame(player_data_as_list)
         df = df.sort_values(by="round_number")
         new_df = pd.DataFrame()
+        columns_to_average = [
+            "points",
+            "creativity",
+            "threat",
+            "influence",
+            "bps",
+            "goals_scored",
+            "minutes",
+        ]
         for key, player_df in df.groupby("player_id"):
-            for column in ["points", "creativity", "threat", "influence", "bps"]:
+            for (
+                column
+            ) in (
+                columns_to_average
+            ):  # columns we want to average for past 4 weeks to predict on
                 player_df[f"rolling_{column}_avg"] = (
                     player_df[column].rolling(4, 0).mean()
-                )
+                ).shift(1)
             # player_df["expected_points"] = player_df["rolling_pts_avg"].shift(
             #     1
             # )  # rolling average after that row's points are added
@@ -52,11 +65,12 @@ class XP_Model:
             #     ].rolling_pts_avg.values[0]
             # except IndexError:
             #     expected_points = 0
-
-            new_df = pd.concat([new_df, player_df])
+            new_df = pd.concat([new_df, player_df]).dropna(
+                subset=[f"rolling_{column}_avg" for column in columns_to_average]
+            )
             # output[key] = expected_points if expected_points == expected_points else 0
         # return output
-        new_df = new_df[new_df["round_number"] <= self.current_gw].copy()
+        new_df = new_df[new_df["round_number"] <= self.current_gw + 1].copy()
         zero_preds = new_df[new_df.value.isna()].copy()
         zero_preds["preds"] = 0
         rest_of_df = new_df[~new_df.value.isna()].copy()
@@ -64,11 +78,6 @@ class XP_Model:
         for column in categorical_columns:
             new_cols = pd.get_dummies(rest_of_df[[column]].astype("str"))
             rest_of_df = pd.concat([rest_of_df, new_cols], axis=1)
-        model_fit_df = rest_of_df[
-            (rest_of_df.points != 0)
-        ].copy()  # & (new_df.round_number != 1)]
-
-        model = Ridge()
         ignore_cols = [
             "points",
             "player_name",
@@ -81,24 +90,29 @@ class XP_Model:
             "creativity",
             "influence",
             "bps",
+            "minutes",
+            "goals_scored",
         ]
-        X_train = model_fit_df.drop(ignore_cols, axis=1).copy()
-        y_train = model_fit_df.points.copy()
-        model.fit(X_train, y_train)
+        # model_fit_df = rest_of_df[
+        #     (rest_of_df.points != 0)
+        # ].copy()  # & (new_df.round_number != 1)]
+        #
+        # model = Ridge()
+        # X_train = model_fit_df.drop(ignore_cols, axis=1).copy()
+        # y_train = model_fit_df.points.copy()
+        # model.fit(X_train, y_train)
         # dump(model, "model.joblib")
-        # model = load("model.joblib")
+        model = load("model.joblib")
         preds = model.predict(rest_of_df.drop(ignore_cols, axis=1))
         rest_of_df["preds"] = preds
         new_df = pd.concat([rest_of_df, zero_preds])
-
         # sum up the points for this GW
         filtered = (
-            new_df[new_df.round_number == self.current_gw][["player_id", "preds"]]
+            new_df[new_df.round_number == self.current_gw + 1][["player_id", "preds"]]
             .groupby("player_id")
             .sum()
             .reset_index()
         )
 
         output = dict(zip(filtered.player_id, filtered.preds))
-
         return output

@@ -89,8 +89,7 @@ if __name__ == "__main__":
         xp_dict1 = model.get_xp()
 
         for player_id in active_players:
-            player_dict[player_id].expected_points = xp_dict1[player_id]
-
+            player_dict[player_id].expected_points = xp_dict1.get(player_id, 0)
         t1 = Team(player_dict, player_list=player_list, current_team=current_team)
         new_team = t1.build_team_for_gw()
 
