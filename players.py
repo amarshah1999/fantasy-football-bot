@@ -51,8 +51,37 @@ class HistoricData:
                     minutes,
                 )
             )
+        # fill in future gameweeks
+        for gameweek in player_round_history["fixtures"]:
+            round_number = gameweek["event"]
+            points = None
+            goals_scored = None
+            was_home = gameweek["is_home"]
+            opposition_team_id = gameweek["team_a"] if was_home else gameweek["team_h"]
+            value = None
+            influence = None
+            threat = None
+            bps = None
+            creativity = None
+            minutes = 0
+            self.history[round_number].append(
+                GameWeekData(
+                    player_id,
+                    round_number,
+                    points,
+                    goals_scored,
+                    opposition_team_id,
+                    was_home,
+                    value,
+                    influence,
+                    threat,
+                    bps,
+                    creativity,
+                    minutes,
+                )
+            )
         # fill in the blank gameweeks
-        for gameweek in range(1, live_gw + 1):
+        for gameweek in range(1, 38):
             if not self.history.get(gameweek):
                 self.history[gameweek].append(
                     GameWeekData(

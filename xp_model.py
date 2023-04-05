@@ -36,7 +36,9 @@ class XP_Model:
                     row_as_dict["player_name"] = player.name
                     player_data_as_list.append(row_as_dict)
         df = pd.DataFrame(player_data_as_list)
-        df = df.sort_values(by="round_number")
+        df = df.sort_values(by=["round_number", "points"]).drop_duplicates(
+            subset=["round_number", "player_id", "opposition_team_id"], keep="first"
+        )
         new_df = pd.DataFrame()
         columns_to_average = [
             "points",
@@ -48,32 +50,21 @@ class XP_Model:
             "minutes",
         ]
         for key, player_df in df.groupby("player_id"):
-            for (
-                column
-            ) in (
-                columns_to_average
-            ):  # columns we want to average for past 4 weeks to predict on
+            for column in columns_to_average:
+                # columns we want to average for past 4 weeks to predict on
                 player_df[f"rolling_{column}_avg"] = (
                     player_df[column].rolling(4, 0).mean()
                 ).shift(1)
-            # player_df["expected_points"] = player_df["rolling_pts_avg"].shift(
-            #     1
-            # )  # rolling average after that row's points are added
-            # try:
-            #     expected_points = player_df[
-            #         player_df.round_number == self.current_gw
-            #     ].rolling_pts_avg.values[0]
-            # except IndexError:
-            #     expected_points = 0
+
             new_df = pd.concat([new_df, player_df]).dropna(
                 subset=[f"rolling_{column}_avg" for column in columns_to_average]
             )
             # output[key] = expected_points if expected_points == expected_points else 0
         # return output
         new_df = new_df[new_df["round_number"] <= self.current_gw + 1].copy()
-        zero_preds = new_df[new_df.value.isna()].copy()
+        zero_preds = new_df[new_df.opposition_team_id.isna()].copy()
         zero_preds["preds"] = 0
-        rest_of_df = new_df[~new_df.value.isna()].copy()
+        rest_of_df = new_df[~new_df.opposition_team_id.isna()].copy()
         categorical_columns = ["was_home"]  # , "opposition_team_id"]
         for column in categorical_columns:
             new_cols = pd.get_dummies(rest_of_df[[column]].astype("str"))
@@ -106,6 +97,7 @@ class XP_Model:
         preds = model.predict(rest_of_df.drop(ignore_cols, axis=1))
         rest_of_df["preds"] = preds
         new_df = pd.concat([rest_of_df, zero_preds])
+        breakpoint()
         # sum up the points for this GW
         filtered = (
             new_df[new_df.round_number == self.current_gw + 1][["player_id", "preds"]]

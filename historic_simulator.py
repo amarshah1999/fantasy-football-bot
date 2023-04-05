@@ -67,7 +67,7 @@ if __name__ == "__main__":
     amar_total = 0
     fpl_bot_total = 0
     wildcard_week = 5
-    for round_number in range(2, 22):
+    for round_number in range(2, 28):
         update_team_attributes(current_team, wildcard_week == round_number)
 
         current_gw = round_number - 1
@@ -167,3 +167,4 @@ if __name__ == "__main__":
         csv.writerow(["round_number", "amar_points", "bot_points", "current_team"])
         for row in output_data:
             csv.writerow(row)
+    print("file saved to simulation_run.csv")

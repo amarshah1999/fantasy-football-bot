@@ -9,21 +9,25 @@ from xp_model import XP_Model
 if __name__ == "__main__":
     api = API()
     current_gw = api.current_gw  # 1 less than the gw we are planning for
-    player_data = api.get_player_data()
-
     team_id_mapping = api.get_team_id_mapping()
-    # player_historic = api.load_player_historic([player["id"] for player in player_data])
-    # with open("player_historic.pickle", "rb") as file:
-    #     player_historic = pickle.load(file)
+    reload_data = False
+    if reload_data:
+        player_data = api.get_player_data()
 
-    # player_dict = get_player_dict(
-    #     player_data, player_historic, team_id_mapping, current_gw
-    # )
-    # with open("player_dict.pickle", "wb") as file:
-    #     pickle.dump(player_dict, file)
+        player_historic = api.load_player_historic(
+            [player["id"] for player in player_data]
+        )
+        # with open("player_historic.pickle", "rb") as file:
+        #     player_historic = pickle.load(file)
 
-    with open("player_dict.pickle", "rb") as file:
-        player_dict = pickle.load(file)
+        player_dict = get_player_dict(
+            player_data, player_historic, team_id_mapping, current_gw
+        )
+        with open("player_dict.pickle", "wb") as file:
+            pickle.dump(player_dict, file)
+    else:
+        with open("player_dict.pickle", "rb") as file:
+            player_dict = pickle.load(file)
 
     # model.get_xp()
 
